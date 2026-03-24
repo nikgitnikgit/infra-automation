@@ -78,6 +78,11 @@ def get_user_input() -> list[dict]:
                 continue
             break
 
+        # Check empty name
+        if not name:
+            print("  ✗  Machine name cannot be empty. Please enter a valid name.")
+            continue
+
         # Check duplicate name
         if name.lower() in existing_names:
             print(f"  ✗  A machine named '{name}' already exists. Please use a different name.")
