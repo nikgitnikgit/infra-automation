@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Project generated files
+logs/
+configs/instances.json
+
+# OS
+.DS_Store
+Thumbs.db

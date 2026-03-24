@@ -1,0 +1,8 @@
+# Always use LF for shell scripts (prevents CRLF breaking bash on Linux/Mac)
+*.sh text eol=lf
+
+# Python files - normalize to LF
+*.py text eol=lf
+
+# Windows-safe: auto-detect everything else
+* text=auto
