@@ -12,6 +12,7 @@ CONFIGS_DIR = os.path.join(os.path.dirname(__file__), "..", "configs")
 INSTANCES_FILE = os.path.join(CONFIGS_DIR, "instances.json")
 
 STOP_WORDS = {"done", "finish", "stop"}
+VALID_SERVICES = {"nginx", "mysql"}
 
 
 def _prompt_int(prompt: str, min_val: int, max_val: int) -> int:
@@ -36,37 +37,64 @@ def _prompt_os(prompt: str) -> str:
         print(f"  ✗  '{raw}' is not supported. Choose from: {', '.join(sorted(VALID_OS))}")
 
 
+def _prompt_services(prompt: str) -> list:
+    """Keep asking until the user enters valid services or leaves blank."""
+    services_hint = ", ".join(sorted(VALID_SERVICES))
+    while True:
+        raw = input(prompt).strip()
+        if not raw:
+            return []
+        services = [s.strip().lower() for s in raw.split(",") if s.strip()]
+        invalid = [s for s in services if s not in VALID_SERVICES]
+        if invalid:
+            print(f"  ✗  Invalid service(s): {', '.join(invalid)}. Choose from: {services_hint}")
+        else:
+            return services
+
+
 def get_user_input() -> list[dict]:
     """
     Interactively prompt the user for one or more VM definitions.
     Returns a list of validated machine config dicts.
     """
     machines = []
+    existing_names = set()
     os_options = ", ".join(sorted(VALID_OS))
+    services_options = ", ".join(sorted(VALID_SERVICES))
     stop_hint = "/".join(sorted(STOP_WORDS))
+
     print(f"\nSupported operating systems: {os_options}")
+    print(f"Supported services: {services_options}")
     print(f"Type '{stop_hint}' as the machine name when finished.\n")
 
     while True:
         name = input(f"Machine name (or '{stop_hint}' to finish): ").strip()
+
+        # Check stop words
         if name.lower() in STOP_WORDS:
             if not machines:
                 print("  ✗  You must define at least one machine.")
                 continue
             break
 
+        # Check duplicate name
+        if name.lower() in existing_names:
+            print(f"  ✗  A machine named '{name}' already exists. Please use a different name.")
+            continue
+
         os_choice = _prompt_os(f"  OS [{os_options}]: ")
         cpu = _prompt_int("  vCPUs (1-64): ", 1, 64)
         ram = _prompt_int("  RAM in GB (1-512): ", 1, 512)
-
-        services_raw = input("  Services to install (comma-separated, e.g. nginx,mysql) or leave blank: ").strip()
-        services = [s.strip().lower() for s in services_raw.split(",") if s.strip()]
+        services = _prompt_services(
+            f"  Services to install ({services_options}) or leave blank: "
+        )
 
         raw = {"name": name, "os": os_choice, "cpu": cpu, "ram": ram, "services": services}
 
         try:
             validated = validate_instance_input(raw)
             machines.append(validated)
+            existing_names.add(name.lower())
             print(f"  ✓  Machine '{validated['name']}' added.\n")
             logger.info(f"User defined machine: {validated}")
         except ValueError as exc:
