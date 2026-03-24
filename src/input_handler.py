@@ -74,8 +74,7 @@ def get_user_input() -> list[dict]:
         # Check stop words
         if name.lower() in STOP_WORDS:
             if not machines:
-                print("  ✗  You must define at least one machine.")
-                continue
+                print("  !  No machines defined. Exiting.")
             break
 
         # Check empty name

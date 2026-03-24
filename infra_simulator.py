@@ -56,8 +56,9 @@ def run(load_existing: bool = False) -> None:
         machines = build_machines(configs)
 
         if not machines:
-            logger.error("No valid machines to provision. Exiting.")
-            sys.exit(1)
+            logger.info("No machines defined. Nothing to provision. Exiting.")
+            print("No machines defined. Exiting.")
+            sys.exit(0)
 
         logger.info(f"Starting provisioning for {len(machines)} machine(s).")
 
