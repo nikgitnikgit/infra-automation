@@ -11,7 +11,6 @@ import argparse
 import sys
 import os
 
-# Make sure src/ is importable when running from the project root
 sys.path.insert(0, os.path.dirname(__file__))
 
 from src.logger import logger
@@ -24,50 +23,65 @@ def build_machines(configs: list[dict]) -> list[Machine]:
     """Convert raw config dicts into Machine objects."""
     machines = []
     for cfg in configs:
-        m = Machine(
-            name=cfg["name"],
-            os=cfg["os"],
-            cpu=cfg["cpu"],
-            ram=cfg["ram"],
-            services=cfg.get("services", []),
-        )
-        machines.append(m)
+        try:
+            m = Machine(
+                name=cfg["name"],
+                os=cfg["os"],
+                cpu=cfg["cpu"],
+                ram=cfg["ram"],
+                services=cfg.get("services", []),
+            )
+            machines.append(m)
+        except Exception as exc:
+            logger.error(f"Failed to create machine object for '{cfg.get('name', '?')}': {exc}")
     return machines
 
 
 def run(load_existing: bool = False) -> None:
-    logger.info("=" * 60)
-    logger.info("Infrastructure Provisioning Simulator — START")
-    logger.info("=" * 60)
+    logger.info("*" * 50)
+    logger.info("Infrastructure Provisioning Simulator — SESSION START")
+    logger.info("*" * 50)
 
-    if load_existing:
-        configs = load_instances()
-        if not configs:
-            logger.error("No saved instances found. Run without --load to define new machines.")
-            sys.exit(1)
-        print(f"\nLoaded {len(configs)} machine(s) from configs/instances.json.\n")
-    else:
-        configs = get_user_input()
-        save_instances(configs)
-
-    machines = build_machines(configs)
-
-    success_count = 0
-    fail_count = 0
-
-    for machine in machines:
-        ok = provision_machine(machine)
-        if ok:
-            success_count += 1
+    try:
+        if load_existing:
+            configs = load_instances()
+            if not configs:
+                logger.error("No saved instances found. Run without --load to define new machines.")
+                sys.exit(1)
+            print(f"\nLoaded {len(configs)} machine(s) from configs/instances.json.\n")
         else:
-            fail_count += 1
+            configs = get_user_input()
+            save_instances(configs)
 
-    logger.info("=" * 60)
-    logger.info(
-        f"Provisioning finished — "
-        f"{success_count} succeeded, {fail_count} failed."
-    )
-    logger.info("=" * 60)
+        machines = build_machines(configs)
+
+        if not machines:
+            logger.error("No valid machines to provision. Exiting.")
+            sys.exit(1)
+
+        logger.info(f"Starting provisioning for {len(machines)} machine(s).")
+
+        success_count = 0
+        fail_count = 0
+
+        for machine in machines:
+            ok = provision_machine(machine)
+            if ok:
+                success_count += 1
+            else:
+                fail_count += 1
+                logger.error(f"Provisioning FAILED for machine: {machine.name}")
+
+    except KeyboardInterrupt:
+        logger.error("Session interrupted by user (Ctrl+C).")
+        sys.exit(1)
+    except Exception as exc:
+        logger.error(f"Unexpected session error: {exc}")
+        sys.exit(1)
+
+    logger.info("*" * 50)
+    logger.info(f"SESSION COMPLETE — {success_count} succeeded, {fail_count} failed.")
+    logger.info("*" * 50)
 
     if fail_count:
         sys.exit(1)
