@@ -55,6 +55,7 @@ def _prompt_services(prompt: str) -> list:
 def get_user_input() -> list[dict]:
     """
     Interactively prompt the user for one or more VM definitions.
+    Saves to JSON after each machine is successfully added.
     Returns a list of validated machine config dicts.
     """
     machines = []
@@ -95,7 +96,9 @@ def get_user_input() -> list[dict]:
             validated = validate_instance_input(raw)
             machines.append(validated)
             existing_names.add(name.lower())
-            print(f"  ✓  Machine '{validated['name']}' added.\n")
+            # Save immediately after each successful machine addition
+            save_instances(machines)
+            print(f"  ✓  Machine '{validated['name']}' added and saved.\n")
             logger.info(f"User defined machine: {validated}")
         except ValueError as exc:
             print(f"  ✗  Validation error: {exc}\n  Please try again.\n")
