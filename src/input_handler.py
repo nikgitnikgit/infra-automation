@@ -11,6 +11,8 @@ from src.logger import logger
 CONFIGS_DIR = os.path.join(os.path.dirname(__file__), "..", "configs")
 INSTANCES_FILE = os.path.join(CONFIGS_DIR, "instances.json")
 
+STOP_WORDS = {"done", "finish", "stop"}
+
 
 def _prompt_int(prompt: str, min_val: int, max_val: int) -> int:
     """Keep asking until the user enters an integer in [min_val, max_val]."""
@@ -25,6 +27,15 @@ def _prompt_int(prompt: str, min_val: int, max_val: int) -> int:
             print("  ✗  That's not a valid integer.")
 
 
+def _prompt_os(prompt: str) -> str:
+    """Keep asking until the user enters a valid OS from VALID_OS."""
+    while True:
+        raw = input(prompt).strip().lower()
+        if raw in VALID_OS:
+            return raw.title()
+        print(f"  ✗  '{raw}' is not supported. Choose from: {', '.join(sorted(VALID_OS))}")
+
+
 def get_user_input() -> list[dict]:
     """
     Interactively prompt the user for one or more VM definitions.
@@ -32,18 +43,19 @@ def get_user_input() -> list[dict]:
     """
     machines = []
     os_options = ", ".join(sorted(VALID_OS))
+    stop_hint = "/".join(sorted(STOP_WORDS))
     print(f"\nSupported operating systems: {os_options}")
-    print("Type 'done' as the machine name when finished.\n")
+    print(f"Type '{stop_hint}' as the machine name when finished.\n")
 
     while True:
-        name = input("Machine name (or 'done' to finish): ").strip()
-        if name.lower() == "done":
+        name = input(f"Machine name (or '{stop_hint}' to finish): ").strip()
+        if name.lower() in STOP_WORDS:
             if not machines:
                 print("  ✗  You must define at least one machine.")
                 continue
             break
 
-        os_choice = input(f"  OS [{os_options}]: ").strip()
+        os_choice = _prompt_os(f"  OS [{os_options}]: ")
         cpu = _prompt_int("  vCPUs (1-64): ", 1, 64)
         ram = _prompt_int("  RAM in GB (1-512): ", 1, 512)
 
